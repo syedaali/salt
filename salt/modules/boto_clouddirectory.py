@@ -4,12 +4,17 @@ Connection module for AWS Cloud Directory
 :maturity:      new
 :depends:       boto
 :platform:      all
+
+If a region is not specified, the default is us-east-1.
+
 '''
 from __future__ import absolute_import
 import logging
 
 import salt.utils.path
 import salt.utils.files
+from salt.exceptions import SaltInvocationError
+
 
 log = logging.getLogger(__name__)
 
@@ -53,6 +58,9 @@ def create_schema(name, region=None, key=None, keyid=None, profile=None):
     '''
     conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
 
+    if not name:
+        raise SaltInvocationError('Must specify schema name to use')
+
     try:
         create_s = conn.create_schema(Name=name)
     except botocore.exceptions.ClientError as e:
@@ -73,6 +81,10 @@ def publish_schema(arn, version, region=None, key=None, keyid=None, profile=None
         salt myminion boto_clouddirectory.publish_schema arn:aws:clouddirectory:us-west-2:123456789:schema/development/testing '1.0' region=us-west-2
     '''
     conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
+
+    if not arn or not version:
+        raise SaltInvocationError('Must specify development schema ARN and version to use')
+
     try:
         publish_s = conn.publish_schema(DevelopmentSchemaArn=arn, Version=str(version))
     except botocore.exceptions.ClientError as e:
@@ -94,6 +106,10 @@ def create_directory(name, arn, region=None, key=None, keyid=None, profile=None)
     '''
 
     conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
+
+    if not name or not arn:
+        raise SaltInvocationError('Must specify directory name and schema ARN')
+
     try:
         create_d = conn.create_directory(Name=name, SchemaArn=arn)
     except botocore.exceptions.ClientError as e:
@@ -124,6 +140,10 @@ def put_schema_from_json(arn, document, region=None, key=None, keyid=None, profi
         salt myminion boto_clouddirectory.put_schema_from_json arn:aws:clouddirectory:us-west-2:123456789:schema/development/testing /srv/salt/files/document.json region=us-west-2
     '''
     conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
+
+    if not arn or not document:
+        raise SaltInvocationError('Must specify schema ARN and JSON document')
+
     json_document = _filedata(document)
     try:
         put_schema = conn.put_schema_from_json(SchemaArn=arn, Document=json_document)
@@ -135,7 +155,7 @@ def put_schema_from_json(arn, document, region=None, key=None, keyid=None, profi
 
 def delete_schema(arn, region=None, key=None, keyid=None, profile=None):
     '''
-    Delete a schema. Returns ARN of deleted schema.
+    Delete a schema.
     Returns: The ARN of the schema that was deleted.
 
     CLI Example:
@@ -145,6 +165,10 @@ def delete_schema(arn, region=None, key=None, keyid=None, profile=None):
         salt myminion boto_clouddirectory.delete_schema arn:aws:clouddirectory:us-west-2:123456789:schema/development/testing region=us-west-2
     '''
     conn = _get_conn(region=region, key=key, keyid=keyid, profile=profile)
+
+    if not arn:
+        raise SaltInvocationError('Must specify schema ARN to delete')
+
     try:
         create_d = conn.delete_schema(SchemaArn=arn)
     except botocore.exceptions.ClientError as e:
